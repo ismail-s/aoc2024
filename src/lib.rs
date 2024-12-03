@@ -1,3 +1,4 @@
+use regex::Regex;
 use std::collections::HashMap;
 
 pub fn day1_part1(inp: &str) -> u64 {
@@ -102,6 +103,39 @@ fn day2_report_is_safe(report: &[u64]) -> bool {
     all_increasing || all_decreasing
 }
 
+pub fn day3_part1(inp: &str) -> u64 {
+    let re = Regex::new("mul\\(([0-9]+),([0-9]+)\\)").unwrap();
+    re.captures_iter(inp)
+        .map(|captures| {
+            let first_num = &captures[1].parse::<u64>().unwrap();
+            let second_num = &captures[2].parse::<u64>().unwrap();
+            first_num * second_num
+        })
+        .sum()
+}
+
+pub fn day3_part2(inp: &str) -> u64 {
+    let re = Regex::new("do\\(\\)|don't\\(\\)|mul\\(([0-9]+),([0-9]+)\\)").unwrap();
+    let mut enabled = true;
+    let mut sum = 0;
+    for captures in re.captures_iter(inp) {
+        if &captures[0] == "do()" {
+            enabled = true;
+            continue;
+        } else if captures[0].starts_with("don't") {
+            enabled = false;
+            continue;
+        }
+        if !enabled {
+            continue;
+        }
+        let first_num = &captures[1].parse::<u64>().unwrap();
+        let second_num = &captures[2].parse::<u64>().unwrap();
+        sum += first_num * second_num;
+    }
+    sum
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -140,5 +174,19 @@ mod tests {
 
         assert_eq!(day2_part2(&test_input), 4);
         assert_eq!(day2_part2(&input), 337);
+    }
+
+    #[test]
+    fn day3() {
+        let test_input = "xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))";
+        let test_input_2 =
+            "xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))";
+        let input = fs::read_to_string("inputs/day3.txt").unwrap();
+
+        assert_eq!(day3_part1(test_input), 161);
+        assert_eq!(day3_part1(&input), 174336360);
+
+        assert_eq!(day3_part2(&test_input_2), 48);
+        assert_eq!(day3_part2(&input), 88802350);
     }
 }
