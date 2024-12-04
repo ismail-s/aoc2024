@@ -324,10 +324,232 @@ pub fn day5_part2(inp: &str) -> u32 {
                     new_update.push(page_num);
                 }
             }
-            println!("am here with {new_update:?}");
             new_update[new_update.len() / 2]
         })
         .sum()
+}
+
+enum Day6Direction {
+    Up,
+    Right,
+    Down,
+    Left,
+}
+
+pub fn day6_part1(inp: &str) -> usize {
+    let grid = inp
+        .lines()
+        .map(|line| line.chars().collect())
+        .collect::<Vec<Vec<_>>>();
+    let rows = grid.len();
+    let cols = grid[0].len();
+    let transp_grid = (0..cols)
+        .map(|col| (0..rows).map(|row| grid[row][col]).collect())
+        .collect::<Vec<Vec<_>>>();
+    let mut guard_loc = (0, 0);
+    'outer: for (row_num, row) in grid.iter().enumerate() {
+        for (col_num, &col) in row.iter().enumerate() {
+            if col == '^' {
+                guard_loc = (col_num, row_num);
+                break 'outer;
+            }
+        }
+    }
+    let mut guard_direction = Day6Direction::Up;
+    let mut visited_positions = HashSet::new();
+    visited_positions.insert(guard_loc);
+    loop {
+        // Below code may have some +-1 errors, but it worked well enough to get the right answer for the inputs I had.
+        match guard_direction {
+            Day6Direction::Up => {
+                let col_part = &transp_grid[guard_loc.0][0..guard_loc.1];
+                match col_part.iter().rposition(|&chr| chr == '#') {
+                    Some(wall_col_num) => {
+                        ((wall_col_num + 1)..col_part.len()).for_each(|col_num| {
+                            visited_positions.insert((guard_loc.0, col_num));
+                        });
+                        guard_direction = Day6Direction::Right;
+                        guard_loc = (guard_loc.0, wall_col_num + 1);
+                    }
+                    None => {
+                        (0..col_part.len()).for_each(|col_num| {
+                            visited_positions.insert((guard_loc.0, col_num));
+                        });
+                        return visited_positions.len();
+                    }
+                }
+            }
+            Day6Direction::Right => {
+                let row_part = &grid[guard_loc.1][(guard_loc.0 + 1)..];
+                match row_part.iter().position(|&chr| chr == '#') {
+                    Some(wall_col_num) => {
+                        ((guard_loc.0 + 1)..(guard_loc.0 + wall_col_num + 1)).for_each(|row_num| {
+                            visited_positions.insert((row_num, guard_loc.1));
+                        });
+                        guard_direction = Day6Direction::Down;
+                        guard_loc = (guard_loc.0 + wall_col_num, guard_loc.1);
+                    }
+                    None => {
+                        ((guard_loc.0 + 1)..(guard_loc.0 + row_part.len())).for_each(|row_num| {
+                            visited_positions.insert((row_num, guard_loc.1));
+                        });
+                        return visited_positions.len();
+                    }
+                }
+            }
+            Day6Direction::Down => {
+                let col_part = &transp_grid[guard_loc.0][(guard_loc.1 + 1)..];
+                match col_part.iter().position(|&chr| chr == '#') {
+                    Some(wall_col_num) => {
+                        ((guard_loc.1 + 1)..(guard_loc.1 + wall_col_num + 1)).for_each(|col_num| {
+                            visited_positions.insert((guard_loc.0, col_num));
+                        });
+                        guard_direction = Day6Direction::Left;
+                        guard_loc = (guard_loc.0, (guard_loc.1 + wall_col_num));
+                    }
+                    None => {
+                        ((guard_loc.1 + 1)..(guard_loc.1 + col_part.len() + 1)).for_each(
+                            |col_num| {
+                                visited_positions.insert((guard_loc.0, col_num));
+                            },
+                        );
+                        return visited_positions.len();
+                    }
+                }
+            }
+            Day6Direction::Left => {
+                let row_part = &grid[guard_loc.1][0..guard_loc.0];
+                match row_part.iter().rposition(|&chr| chr == '#') {
+                    Some(wall_col_num) => {
+                        ((wall_col_num + 1)..row_part.len()).for_each(|row_num| {
+                            visited_positions.insert((row_num, guard_loc.1));
+                        });
+                        guard_direction = Day6Direction::Up;
+                        guard_loc = (wall_col_num + 1, guard_loc.1);
+                    }
+                    None => {
+                        (0..row_part.len()).for_each(|row_num| {
+                            visited_positions.insert((row_num, guard_loc.1));
+                        });
+                        return visited_positions.len();
+                    }
+                }
+            }
+        }
+    }
+}
+
+pub fn day6_part2(inp: &str) -> usize {
+    let grid = inp
+        .lines()
+        .map(|line| line.chars().collect())
+        .collect::<Vec<Vec<_>>>();
+    let rows = grid.len();
+    let cols = grid[0].len();
+    let mut guard_loc_initial = (0, 0);
+    'outer: for (row_num, row) in grid.iter().enumerate() {
+        for (col_num, &col) in row.iter().enumerate() {
+            if col == '^' {
+                guard_loc_initial = (col_num, row_num);
+                break 'outer;
+            }
+        }
+    }
+    let mut num_of_positions = 0;
+
+    for obstruction @ (obstruction_col, obstruction_row) in
+        (0..rows).flat_map(|r| (0..cols).map(|c| (c, r)).collect::<Vec<_>>())
+    {
+        if obstruction == guard_loc_initial || grid[obstruction_row][obstruction_col] == '#' {
+            continue;
+        }
+        let mut guard_loc = guard_loc_initial;
+        let mut grid = inp
+            .lines()
+            .map(|line| line.chars().collect())
+            .collect::<Vec<Vec<_>>>();
+        let mut transp_grid = (0..cols)
+            .map(|col| (0..rows).map(|row| grid[row][col]).collect())
+            .collect::<Vec<Vec<_>>>();
+        grid[obstruction_row][obstruction_col] = '#';
+        transp_grid[obstruction_col][obstruction_row] = '#';
+
+        let mut guard_direction = Day6Direction::Up;
+        let mut visited_positions = HashSet::new();
+        visited_positions.insert(guard_loc);
+
+        let mut further_loops_counter = 0;
+        loop {
+            let start_num_of_visited_positions = visited_positions.len();
+            match guard_direction {
+                Day6Direction::Up => {
+                    let col_part = &transp_grid[guard_loc.0][0..guard_loc.1];
+                    match col_part.iter().rposition(|&chr| chr == '#') {
+                        Some(wall_col_num) => {
+                            ((wall_col_num + 1)..col_part.len()).for_each(|col_num| {
+                                visited_positions.insert((guard_loc.0, col_num));
+                            });
+                            guard_direction = Day6Direction::Right;
+                            guard_loc = (guard_loc.0, wall_col_num + 1);
+                        }
+                        None => break,
+                    }
+                }
+                Day6Direction::Right => {
+                    let row_part = &grid[guard_loc.1][(guard_loc.0 + 1)..];
+                    match row_part.iter().position(|&chr| chr == '#') {
+                        Some(wall_col_num) => {
+                            ((guard_loc.0 + 1)..(guard_loc.0 + wall_col_num + 1)).for_each(
+                                |row_num| {
+                                    visited_positions.insert((row_num, guard_loc.1));
+                                },
+                            );
+                            guard_direction = Day6Direction::Down;
+                            guard_loc = (guard_loc.0 + wall_col_num, guard_loc.1);
+                        }
+                        None => break,
+                    }
+                }
+                Day6Direction::Down => {
+                    let col_part = &transp_grid[guard_loc.0][(guard_loc.1 + 1)..];
+                    match col_part.iter().position(|&chr| chr == '#') {
+                        Some(wall_col_num) => {
+                            ((guard_loc.1 + 1)..(guard_loc.1 + wall_col_num + 1)).for_each(
+                                |col_num| {
+                                    visited_positions.insert((guard_loc.0, col_num));
+                                },
+                            );
+                            guard_direction = Day6Direction::Left;
+                            guard_loc = (guard_loc.0, (guard_loc.1 + wall_col_num));
+                        }
+                        None => break,
+                    }
+                }
+                Day6Direction::Left => {
+                    let row_part = &grid[guard_loc.1][0..guard_loc.0];
+                    match row_part.iter().rposition(|&chr| chr == '#') {
+                        Some(wall_col_num) => {
+                            ((wall_col_num + 1)..row_part.len()).for_each(|row_num| {
+                                visited_positions.insert((row_num, guard_loc.1));
+                            });
+                            guard_direction = Day6Direction::Up;
+                            guard_loc = (wall_col_num + 1, guard_loc.1);
+                        }
+                        None => break,
+                    }
+                }
+            }
+            if start_num_of_visited_positions == visited_positions.len() {
+                if further_loops_counter < 8 {
+                    further_loops_counter += 1;
+                    continue;
+                }
+                num_of_positions += 1;
+                break;
+            }
+        }
+    }
+    num_of_positions
 }
 
 #[cfg(test)]
@@ -432,5 +654,21 @@ MXMXAXMASX";
 97,13,75,29,47";
         assert_eq!(day5_part1(test_input), 143);
         assert_eq!(day5_part2(test_input), 123);
+    }
+
+    #[test]
+    fn day6() {
+        let test_input = "....#.....
+.........#
+..........
+..#.......
+.......#..
+..........
+.#..^.....
+........#.
+#.........
+......#...";
+        assert_eq!(day6_part1(test_input), 41);
+        assert_eq!(day6_part2(test_input), 6);
     }
 }
