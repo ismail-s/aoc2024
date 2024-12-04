@@ -632,6 +632,118 @@ pub fn day7_part2(inp: &str) -> u64 {
         .sum()
 }
 
+pub fn day8_part1(inp: &str) -> usize {
+    let grid = inp.lines().collect::<Vec<_>>();
+    let num_of_rows = grid.len();
+    let num_of_cols = grid[0].chars().count();
+
+    // find all antennas and group by frequency
+    let mut antennas: HashMap<char, Vec<(usize, usize)>> = HashMap::new();
+    grid.iter().enumerate().for_each(|(row_num, &row)| {
+        row.chars().enumerate().for_each(|(col_num, chr)| {
+            if chr != '.' {
+                antennas
+                    .entry(chr)
+                    .and_modify(|antenna_list| antenna_list.push((col_num, row_num)))
+                    .or_insert(vec![(col_num, row_num)]);
+            }
+        });
+    });
+    // for each frequency, find all the antinodes
+    let mut unique_antinodes = HashSet::new();
+    for (_, antennas_vec) in antennas.iter() {
+        for (n, antenna1) in antennas_vec.iter().enumerate() {
+            for antenna2 in antennas_vec.iter().skip(n + 1) {
+                let diff_col = (antenna2.0 as i32) - (antenna1.0 as i32);
+                let diff_row = (antenna2.1 as i32) - (antenna1.1 as i32);
+                let antinode1 = (
+                    ((antenna1.0 as i32) - diff_col),
+                    ((antenna1.1 as i32) - diff_row),
+                );
+                let antinode2 = (
+                    ((antenna2.0 as i32) + diff_col),
+                    ((antenna2.1 as i32) + diff_row),
+                );
+                for antinode in vec![antinode1, antinode2].into_iter() {
+                    if antinode.0 >= 0
+                        && antinode.0 < (num_of_cols as i32)
+                        && antinode.1 >= 0
+                        && antinode.1 < (num_of_rows as i32)
+                    {
+                        unique_antinodes.insert(antinode);
+                    }
+                }
+            }
+        }
+    }
+    // count up all the unique antinodes
+    unique_antinodes.len()
+}
+
+pub fn day8_part2(inp: &str) -> usize {
+    let grid = inp.lines().collect::<Vec<_>>();
+    let num_of_rows = grid.len();
+    let num_of_cols = grid[0].chars().count();
+
+    // find all antennas and group by frequency
+    let mut antennas: HashMap<char, Vec<(usize, usize)>> = HashMap::new();
+    grid.iter().enumerate().for_each(|(row_num, &row)| {
+        row.chars().enumerate().for_each(|(col_num, chr)| {
+            if chr != '.' {
+                antennas
+                    .entry(chr)
+                    .and_modify(|antenna_list| antenna_list.push((col_num, row_num)))
+                    .or_insert(vec![(col_num, row_num)]);
+            }
+        });
+    });
+    // for each frequency, find all the antinodes
+    let mut unique_antinodes = HashSet::new();
+    for (_, antennas_vec) in antennas.iter() {
+        // skip any antennas that are on their own
+        if antennas_vec.len() < 2 {
+            continue;
+        }
+        antennas_vec.iter().for_each(|a| {
+            unique_antinodes.insert((a.0 as i32, a.1 as i32));
+        });
+        for (n, antenna1) in antennas_vec.iter().enumerate() {
+            for antenna2 in antennas_vec.iter().skip(n + 1) {
+                let diff_col = (antenna2.0 as i32) - (antenna1.0 as i32);
+                let diff_row = (antenna2.1 as i32) - (antenna1.1 as i32);
+
+                let mut antinode1 = (
+                    ((antenna1.0 as i32) - diff_col),
+                    ((antenna1.1 as i32) - diff_row),
+                );
+                while antinode1.0 >= 0
+                    && antinode1.0 < (num_of_cols as i32)
+                    && antinode1.1 >= 0
+                    && antinode1.1 < (num_of_rows as i32)
+                {
+                    unique_antinodes.insert(antinode1);
+                    antinode1 = ((antinode1.0 - diff_col), (antinode1.1 - diff_row));
+                }
+
+                let mut antinode2 = (
+                    ((antenna2.0 as i32) + diff_col),
+                    ((antenna2.1 as i32) + diff_row),
+                );
+                while antinode2.0 >= 0
+                    && antinode2.0 < (num_of_cols as i32)
+                    && antinode2.1 >= 0
+                    && antinode2.1 < (num_of_rows as i32)
+                {
+                    unique_antinodes.insert(antinode2);
+                    antinode2 = ((antinode2.0 + diff_col), (antinode2.1 + diff_row));
+                }
+            }
+        }
+    }
+    // count up all the unique antinodes
+    unique_antinodes.len()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -766,5 +878,24 @@ MXMXAXMASX";
 
         assert_eq!(day7_part1(test_input), 3749);
         assert_eq!(day7_part2(test_input), 11387);
+    }
+
+    #[test]
+    fn day8() {
+        let test_input = "............
+........0...
+.....0......
+.......0....
+....0.......
+......A.....
+............
+............
+........A...
+.........A..
+............
+............";
+
+        assert_eq!(day8_part1(test_input), 14);
+        assert_eq!(day8_part2(test_input), 34);
     }
 }
