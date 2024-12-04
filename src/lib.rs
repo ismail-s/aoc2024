@@ -552,6 +552,86 @@ pub fn day6_part2(inp: &str) -> usize {
     num_of_positions
 }
 
+pub fn day7_part1(inp: &str) -> u64 {
+    inp.lines()
+        .map(|line| line.split_once(": ").unwrap())
+        .map(|(test_val, equation)| {
+            (
+                test_val.parse::<u64>().unwrap(),
+                equation
+                    .split(' ')
+                    .map(|n| n.parse().unwrap())
+                    .collect::<Vec<u64>>(),
+            )
+        })
+        .filter(|(test_val, equation)| {
+            if !equation.contains(&1)
+                && (equation.iter().sum::<u64>() > *test_val
+                    || equation.iter().product::<u64>() < *test_val)
+            {
+                return false;
+            }
+            for mut operator_iteration in 0..(2_u64.pow((equation.len() as u32) - 1)) {
+                let mut actual_val = equation[0];
+                for n in &equation[1..] {
+                    if operator_iteration % 2 == 0 {
+                        actual_val += n;
+                    } else {
+                        actual_val *= n;
+                    }
+                    operator_iteration /= 2;
+                }
+                if actual_val == *test_val {
+                    return true;
+                }
+            }
+            false
+        })
+        .map(|(test_val, _)| test_val)
+        .sum()
+}
+
+pub fn day7_part2(inp: &str) -> u64 {
+    inp.lines()
+        .map(|line| line.split_once(": ").unwrap())
+        .map(|(test_val, equation)| {
+            (
+                test_val.parse::<u64>().unwrap(),
+                equation
+                    .split(' ')
+                    .map(|n| n.parse().unwrap())
+                    .collect::<Vec<u64>>(),
+            )
+        })
+        .filter(|(test_val, equation)| {
+            for mut operator_iteration in 0..(3_u64.pow((equation.len() as u32) - 1)) {
+                let mut actual_val = equation[0];
+                for n in &equation[1..] {
+                    match operator_iteration % 3 {
+                        0 => {
+                            actual_val += n;
+                        }
+                        1 => {
+                            actual_val *= n;
+                        }
+                        _ => {
+                            // Concatenate the 2 numbers
+                            let num_of_digits_to_shift_by = n.ilog10() + 1;
+                            actual_val = (actual_val * 10_u64.pow(num_of_digits_to_shift_by)) + n;
+                        }
+                    }
+                    operator_iteration /= 3;
+                }
+                if actual_val == *test_val {
+                    return true;
+                }
+            }
+            false
+        })
+        .map(|(test_val, _)| test_val)
+        .sum()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -670,5 +750,21 @@ MXMXAXMASX";
 ......#...";
         assert_eq!(day6_part1(test_input), 41);
         assert_eq!(day6_part2(test_input), 6);
+    }
+
+    #[test]
+    fn day7() {
+        let test_input = "190: 10 19
+3267: 81 40 27
+83: 17 5
+156: 15 6
+7290: 6 8 6 15
+161011: 16 10 13
+192: 17 8 14
+21037: 9 7 18 13
+292: 11 6 16 20";
+
+        assert_eq!(day7_part1(test_input), 3749);
+        assert_eq!(day7_part2(test_input), 11387);
     }
 }
