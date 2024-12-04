@@ -1,5 +1,5 @@
 use regex::Regex;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub fn day1_part1(inp: &str) -> u64 {
     let parsed_input = inp
@@ -249,6 +249,87 @@ fn day4_part_2_get_word_centres(grid: &[Vec<char>], (x, y): (usize, usize)) -> V
     word_centres
 }
 
+pub fn day5_part1(inp: &str) -> u32 {
+    let (first_part, second_part) = inp.split_once("\n\n").unwrap();
+    let page_ordering_rules = first_part
+        .lines()
+        .map(|line| {
+            let (a, b) = line.split_once('|').unwrap();
+            (a.parse().unwrap(), b.parse().unwrap())
+        })
+        .collect::<HashSet<(u32, u32)>>();
+
+    second_part
+        .lines()
+        .map(|line| {
+            line.split(',')
+                .map(|string| string.parse().unwrap())
+                .collect::<Vec<u32>>()
+        })
+        .filter(|update| {
+            for (n, &a) in update.iter().enumerate() {
+                for &b in update.iter().skip(n + 1) {
+                    if !page_ordering_rules.contains(&(a, b)) {
+                        return false;
+                    }
+                }
+            }
+            true
+        })
+        .map(|update| update[update.len() / 2])
+        .sum()
+}
+
+pub fn day5_part2(inp: &str) -> u32 {
+    let (first_part, second_part) = inp.split_once("\n\n").unwrap();
+    let page_ordering_rules = first_part
+        .lines()
+        .map(|line| {
+            let (a, b) = line.split_once('|').unwrap();
+            (a.parse().unwrap(), b.parse().unwrap())
+        })
+        .collect::<HashSet<(u32, u32)>>();
+
+    second_part
+        .lines()
+        .map(|line| {
+            line.split(',')
+                .map(|string| string.parse().unwrap())
+                .collect::<Vec<u32>>()
+        })
+        .filter(|update| {
+            for (n, &a) in update.iter().enumerate() {
+                for &b in update.iter().skip(n + 1) {
+                    if !page_ordering_rules.contains(&(a, b)) {
+                        return true;
+                    }
+                }
+            }
+            false
+        })
+        .map(|update| {
+            let mut new_update = Vec::new();
+            for page_num in update.into_iter() {
+                let mut havent_inserted = true;
+                for (n, &page_num1) in new_update.iter().enumerate() {
+                    if page_ordering_rules.contains(&(page_num1, page_num)) {
+                        continue;
+                    } else {
+                        new_update.insert(n, page_num);
+                        havent_inserted = false;
+                        break;
+                    }
+                }
+                if havent_inserted {
+                    new_update.push(page_num);
+                }
+            }
+            println!("am here with {new_update:?}");
+            new_update[new_update.len() / 2]
+        })
+        .sum()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -317,5 +398,39 @@ MAMMMXMMMM
 MXMXAXMASX";
         assert_eq!(day4_part1(test_input), 18);
         assert_eq!(day4_part2(&test_input), 9);
+    }
+
+    #[test]
+    fn day5() {
+        let test_input = "47|53
+97|13
+97|61
+97|47
+75|29
+61|13
+75|53
+29|13
+97|29
+53|29
+61|53
+97|53
+61|29
+47|13
+75|47
+97|75
+47|61
+75|61
+47|29
+75|13
+53|13
+
+75,47,61,53,29
+97,61,53,29,13
+75,29,13
+75,97,47,61,53
+61,13,29
+97,13,75,29,47";
+        assert_eq!(day5_part1(test_input), 143);
+        assert_eq!(day5_part2(test_input), 123);
     }
 }
