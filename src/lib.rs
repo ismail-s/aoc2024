@@ -136,6 +136,119 @@ pub fn day3_part2(inp: &str) -> u64 {
     sum
 }
 
+pub fn day4_part1(inp: &str) -> u64 {
+    let grid: Vec<Vec<_>> = inp.lines().map(|line| line.chars().collect()).collect();
+    // find the Xs in the grid
+    let mut x_locs = Vec::new();
+    for (y, line) in grid.iter().enumerate() {
+        for (x, &chr) in line.iter().enumerate() {
+            if chr == 'X' {
+                x_locs.push((x, y));
+            }
+        }
+    }
+    // for each X, count the number of words from it
+    x_locs
+        .into_iter()
+        .map(|point| day4_count_words_from_point(&grid, point))
+        .sum()
+}
+
+fn day4_count_words_from_point(grid: &[Vec<char>], (x, y): (usize, usize)) -> u64 {
+    let grid_width = grid[0].len();
+    let grid_height = grid.len();
+    let (x, y): (i64, i64) = (x.try_into().unwrap(), y.try_into().unwrap());
+    let mut word_coords = vec![
+        [(x, y), (x, y + 1), (x, y + 2), (x, y + 3)],
+        [(x, y), (x, y - 1), (x, y - 2), (x, y - 3)],
+        [(x, y), (x + 1, y), (x + 2, y), (x + 3, y)],
+        [(x, y), (x - 1, y), (x - 2, y), (x - 3, y)],
+        [(x, y), (x + 1, y + 1), (x + 2, y + 2), (x + 3, y + 3)],
+        [(x, y), (x + 1, y - 1), (x + 2, y - 2), (x + 3, y - 3)],
+        [(x, y), (x - 1, y + 1), (x - 2, y + 2), (x - 3, y + 3)],
+        [(x, y), (x - 1, y - 1), (x - 2, y - 2), (x - 3, y - 3)],
+    ];
+    word_coords.retain(|coords| {
+        !coords.iter().any(|&(x1, y1)| {
+            x1 < 0
+                || y1 < 0
+                || x1 >= grid_width.try_into().unwrap()
+                || y1 >= grid_height.try_into().unwrap()
+        })
+    });
+
+    let mut count = 0;
+    for coords in word_coords {
+        let word = coords
+            .iter()
+            .map(|&(x1, y1)| grid[y1 as usize][x1 as usize])
+            .collect::<String>();
+        if word == "XMAS" {
+            count += 1;
+        }
+    }
+    count
+}
+
+pub fn day4_part2(inp: &str) -> usize {
+    let grid: Vec<Vec<_>> = inp.lines().map(|line| line.chars().collect()).collect();
+    // find the Ms in the grid
+    let mut m_locs = Vec::new();
+    for (y, line) in grid.iter().enumerate() {
+        for (x, &chr) in line.iter().enumerate() {
+            if chr == 'M' {
+                m_locs.push((x, y));
+            }
+        }
+    }
+    let word_centres = m_locs
+        .into_iter()
+        .flat_map(|point| day4_part_2_get_word_centres(&grid, point))
+        .collect::<Vec<_>>();
+
+    let mut freq_map = HashMap::new();
+    for word_centre in word_centres {
+        freq_map
+            .entry(word_centre)
+            .and_modify(|n| *n += 1)
+            .or_insert(1_u64);
+    }
+    freq_map.retain(|_, count| *count > 1);
+    freq_map.len()
+}
+
+fn day4_part_2_get_word_centres(grid: &[Vec<char>], (x, y): (usize, usize)) -> Vec<(i64, i64)> {
+    let grid_width = grid[0].len();
+    let grid_height = grid.len();
+    let (x, y): (i64, i64) = (x.try_into().unwrap(), y.try_into().unwrap());
+    let mut word_coords = vec![
+        [(x, y), (x + 1, y + 1), (x + 2, y + 2)],
+        [(x, y), (x + 1, y - 1), (x + 2, y - 2)],
+        [(x, y), (x - 1, y + 1), (x - 2, y + 2)],
+        [(x, y), (x - 1, y - 1), (x - 2, y - 2)],
+    ];
+    word_coords.retain(|coords| {
+        !coords.iter().any(|&(x1, y1)| {
+            x1 < 0
+                || y1 < 0
+                || x1 >= grid_width.try_into().unwrap()
+                || y1 >= grid_height.try_into().unwrap()
+        })
+    });
+
+    let mut word_centres = Vec::new();
+    for coords in word_coords {
+        let word = coords
+            .iter()
+            .map(|&(x1, y1)| grid[y1 as usize][x1 as usize])
+            .collect::<String>();
+        if word == "MAS" {
+            word_centres.push(coords[1]);
+        }
+    }
+    word_centres
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -188,5 +301,21 @@ mod tests {
 
         assert_eq!(day3_part2(&test_input_2), 48);
         assert_eq!(day3_part2(&input), 88802350);
+    }
+
+    #[test]
+    fn day4() {
+        let test_input = "MMMSXXMASM
+MSAMXMSMSA
+AMXSXMAAMM
+MSAMASMSMX
+XMASAMXAMM
+XXAMMXXAMA
+SMSMSASXSS
+SAXAMASAAA
+MAMMMXMMMM
+MXMXAXMASX";
+        assert_eq!(day4_part1(test_input), 18);
+        assert_eq!(day4_part2(&test_input), 9);
     }
 }
