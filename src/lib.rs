@@ -744,6 +744,91 @@ pub fn day8_part2(inp: &str) -> usize {
     unique_antinodes.len()
 }
 
+pub fn day9_part1(inp: &str) -> usize {
+    let mut num_of_free_spaces = 0;
+    let mut disk: Vec<i32> = Vec::new();
+    for (n, digit) in inp
+        .chars()
+        .filter(|c| c != &'\n')
+        .map(|c| c.to_digit(10).unwrap())
+        .enumerate()
+    {
+        if n % 2 == 0 {
+            disk.append(&mut vec![(n / 2) as i32; digit as usize]);
+        } else {
+            disk.append(&mut vec![-1; digit as usize]);
+            num_of_free_spaces += digit;
+        }
+    }
+    let target_disk_len = disk.len() - num_of_free_spaces as usize;
+    while disk.len() > target_disk_len {
+        let file_block = disk.pop().unwrap();
+        if file_block == -1 {
+            continue;
+        }
+        // could optimise by skipping ahead and not always starting at the beginning.
+        // But this implementation is fast enough in release mode.
+        let index = disk.iter().position(|f| *f == -1).unwrap();
+        disk[index] = file_block;
+    }
+    disk.iter()
+        .enumerate()
+        .map(|(n, &file_id)| n * file_id as usize)
+        .sum()
+}
+
+pub fn day9_part2(inp: &str) -> usize {
+    let mut disk: Vec<i32> = Vec::new();
+    // vec of (start_pos_in_disk, length_of_file). Position in this vec is the file ID.
+    let mut files = Vec::new();
+    for (n, digit) in inp
+        .chars()
+        .filter(|c| c != &'\n')
+        .map(|c| c.to_digit(10).unwrap())
+        .enumerate()
+    {
+        if n % 2 == 0 {
+            files.push((disk.len(), digit));
+            disk.append(&mut vec![(n / 2) as i32; digit as usize]);
+        } else {
+            disk.append(&mut vec![-1; digit as usize]);
+        }
+    }
+    for (file_id, &(file_start_pos, file_length)) in files.iter().enumerate().skip(1).rev() {
+        for (n, window) in disk.windows(file_length as usize).enumerate() {
+            if n >= file_start_pos {
+                break;
+            }
+            if window.iter().all(|&f| f == -1) {
+                for item in disk.iter_mut().skip(n).take(file_length as usize) {
+                    *item = file_id as i32;
+                }
+                for item in disk
+                    .iter_mut()
+                    .skip(file_start_pos)
+                    .take(file_length as usize)
+                {
+                    *item = -1;
+                }
+                while disk[disk.len() - 1] == -1 {
+                    disk.pop();
+                }
+                break;
+            }
+        }
+    }
+    disk.iter()
+        .enumerate()
+        .map(|(n, &file_id)| {
+            if file_id == -1 {
+                0
+            } else {
+                n * file_id as usize
+            }
+        })
+        .sum()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -897,5 +982,13 @@ MXMXAXMASX";
 
         assert_eq!(day8_part1(test_input), 14);
         assert_eq!(day8_part2(test_input), 34);
+    }
+
+    #[test]
+    fn day9() {
+        let test_input = "2333133121414131402";
+
+        assert_eq!(day9_part1(test_input), 1928);
+        assert_eq!(day9_part2(test_input), 2858);
     }
 }
