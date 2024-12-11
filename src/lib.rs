@@ -829,6 +829,89 @@ pub fn day9_part2(inp: &str) -> usize {
         .sum()
 }
 
+pub fn day10_part1(inp: &str) -> usize {
+    let grid = inp
+        .lines()
+        .map(|line| line.chars().map(|c| c.to_digit(10).unwrap()).collect())
+        .collect::<Vec<Vec<_>>>();
+    // find locations of all zeros
+    let mut res = 0;
+    for (y, row) in grid.iter().enumerate() {
+        for (x, &digit) in row.iter().enumerate() {
+            // for each zero, compute the trailhead score
+            if digit == 0 {
+                res += day10_compute_trailhead_score((x, y), &grid);
+            }
+        }
+    }
+    res
+}
+
+pub fn day10_part2(inp: &str) -> usize {
+    let grid = inp
+        .lines()
+        .map(|line| line.chars().map(|c| c.to_digit(10).unwrap()).collect())
+        .collect::<Vec<Vec<_>>>();
+    // find locations of all zeros
+    let mut res = 0;
+    for (y, row) in grid.iter().enumerate() {
+        for (x, &digit) in row.iter().enumerate() {
+            // for each zero, compute the trailhead score
+            if digit == 0 {
+                res += day10_compute_trailhead_rating((x, y), digit, &grid);
+            }
+        }
+    }
+    res
+}
+
+fn day10_compute_trailhead_score(position: (usize, usize), grid: &[Vec<u32>]) -> usize {
+    day10_get_trailhead_9height_positions(position, 0, grid).len()
+}
+
+fn day10_get_trailhead_9height_positions(
+    position: (usize, usize),
+    val: u32,
+    grid: &[Vec<u32>],
+) -> HashSet<(usize, usize)> {
+    if val == 9 {
+        return HashSet::from([position]);
+    }
+    let surrounding_points = day10_get_surrounding_points(position, grid);
+    let mut res = HashSet::new();
+    for point @ (x, y) in surrounding_points {
+        if grid[y][x] == val + 1 {
+            res.extend(day10_get_trailhead_9height_positions(point, val + 1, grid));
+        }
+    }
+    res
+}
+
+fn day10_compute_trailhead_rating(position: (usize, usize), val: u32, grid: &[Vec<u32>]) -> usize {
+    if val == 9 {
+        return 1;
+    }
+    let surrounding_points = day10_get_surrounding_points(position, grid);
+    let mut res = 0;
+    for point @ (x, y) in surrounding_points {
+        if grid[y][x] == val + 1 {
+            res += day10_compute_trailhead_rating(point, val + 1, grid);
+        }
+    }
+    res
+}
+
+fn day10_get_surrounding_points((x, y): (usize, usize), grid: &[Vec<u32>]) -> Vec<(usize, usize)> {
+    let (x, y) = (x as i32, y as i32);
+    let height = grid.len() as i32;
+    let width = grid[0].len() as i32;
+    vec![(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+        .into_iter()
+        .filter(|(x1, y1)| *x1 >= 0 && *y1 >= 0 && *x1 < width && *y1 < height)
+        .map(|(x1, y1)| (x1 as usize, y1 as usize))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -990,5 +1073,19 @@ MXMXAXMASX";
 
         assert_eq!(day9_part1(test_input), 1928);
         assert_eq!(day9_part2(test_input), 2858);
+    }
+
+    #[test]
+    fn day10() {
+        let test_input = "89010123
+78121874
+87430965
+96549874
+45678903
+32019012
+01329801
+10456732";
+        assert_eq!(day10_part1(test_input), 36);
+        assert_eq!(day10_part2(test_input), 81);
     }
 }
