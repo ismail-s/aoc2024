@@ -912,6 +912,70 @@ fn day10_get_surrounding_points((x, y): (usize, usize), grid: &[Vec<u32>]) -> Ve
         .collect()
 }
 
+pub fn day11_part1(inp: &str) -> usize {
+    let mut stones = inp
+        .split(' ')
+        .map(|s| s.parse().unwrap())
+        .collect::<Vec<u64>>();
+    for _ in 0..25 {
+        stones = stones
+            .into_iter()
+            .flat_map(|stone| {
+                if stone == 0 {
+                    vec![1]
+                } else if ((stone.ilog10() + 1) % 2) == 0 {
+                    let num_of_digits = stone.ilog10() + 1;
+                    let x = stone / 10_u64.pow(num_of_digits / 2);
+                    let y = stone - (x * 10_u64.pow(num_of_digits / 2));
+                    vec![x, y]
+                } else {
+                    vec![stone * 2024]
+                }
+            })
+            .collect();
+    }
+    stones.len()
+}
+
+pub fn day11_part2(inp: &str) -> u64 {
+    let mut stones = inp
+        .split(' ')
+        .map(|s| (s.parse().unwrap(), 1))
+        .collect::<HashMap<u64, u64>>();
+    for _ in 0..75 {
+        stones = stones
+            .iter()
+            .map(|(stone, &count)| {
+                if *stone == 0 {
+                    HashMap::from([(1, count)])
+                } else if ((stone.ilog10() + 1) % 2) == 0 {
+                    let num_of_digits = stone.ilog10() + 1;
+                    let x = stone / 10_u64.pow(num_of_digits / 2);
+                    let y = stone - (x * 10_u64.pow(num_of_digits / 2));
+                    if x == y {
+                        HashMap::from([(x, count * 2)])
+                    } else {
+                        HashMap::from([(x, count), (y, count)])
+                    }
+                } else {
+                    HashMap::from([(stone * 2024, count)])
+                }
+            })
+            .reduce(|mut acc, map| {
+                for (stone, count) in map {
+                    acc.entry(stone)
+                        .and_modify(|count1| {
+                            *count1 += count;
+                        })
+                        .or_insert(count);
+                }
+                acc
+            })
+            .unwrap();
+    }
+    stones.into_values().sum()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1087,5 +1151,12 @@ MXMXAXMASX";
 10456732";
         assert_eq!(day10_part1(test_input), 36);
         assert_eq!(day10_part2(test_input), 81);
+    }
+
+    #[test]
+    fn day11() {
+        let test_input = "125 17";
+        assert_eq!(day11_part1(test_input), 55312);
+        assert_eq!(day11_part2(test_input), 65601038650482);
     }
 }
